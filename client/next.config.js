@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   env:{
  SERVER_URL: "http://localhost:8747",
- SOLANA_PUBKEY: "EVeEgzJBUb7CZohdeqFRe43hEC9grLyaGksQV7C5sKVb"
+ SOLANA_PUBKEY: "BHRZ6PnRQRpWfxYyt3dmqi56F8Kp1CBo7qVjGxiYPvpT"
   },
   images: {
     remotePatterns: [

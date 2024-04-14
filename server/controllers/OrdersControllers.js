@@ -6,7 +6,6 @@ const stripe = new Stripe(
   "sk_test_51DpVXWGc9EcLzRLBNKni929hB026lACv6toMfjH1FPtIXfYgIrhXzjolcYzDDl2VwtvmyPF20PJ1JaMUCTNoEwDN00FN8hrRZL"
 );
 const connection = new Connection('https://api.devnet.solana.com');
-const yourSolanaWalletPublicKey = new PublicKey(process.env.SOLANA_PUBKEY);
 
 export const createOrder = async (req, res, next) => {
   try {
@@ -63,7 +62,6 @@ export const confirmSolanaOrder = async (req, res, next) => {
   try {
     if (req.body.gigId) {
       const { gigId, signedTransaction } = req.body;
-
 //////Gig Data Load
 const prisma = new PrismaClient();
 const gig = await prisma.gigs.findUnique({
@@ -72,29 +70,25 @@ const gig = await prisma.gigs.findUnique({
 
 
 /////Verify SOL Transaction
-      const transaction = Transaction.from(signedTransaction);
-      const isSignatureValid = await transaction.verifySignature();
-      if (!isSignatureValid) {
+      const transactionDetails = await connection.getTransaction(signedTransaction);
+      if (!transactionDetails) {
         throw new Error('Invalid signature');
       }
-      const recipientPublicKey = transaction.instructions[0].keys[1].pubkey;
-      const amount = transaction.instructions[0].data.slice(8, 16).readUIntLE(0, 8);
-  
-      // Verify the recipient address
-      if (!recipientPublicKey.equals(yourSolanaWalletPublicKey)) {
-        throw new Error('Invalid recipient');
-      }
-  
-      // Verify the amount
-      if (amount !== gig?.price) {
-        throw new Error('Invalid amount');
-      }
-      // Process the transaction
-      const signature = await connection.sendRawTransaction(signedTransaction);
     
+  
+     // Extract the account keys from the transaction details
+    const accountKeys = transactionDetails.transaction.message.accountKeys;
+    const isReceiverAddressFound = accountKeys.some(key => key.equals(new PublicKey(process.env.SOLANA_PUBKEY)));
+
+      // Verify the amount&ReceiverAddress
+      if (!isReceiverAddressFound) {
+        throw new Error('Invalid  ReceiverAddress');
+      }
+    
+      ////Update To database
       await prisma.orders.create({
         data: {
-          paymentIntent: signature.toString(),
+          paymentIntent: signedTransaction,
           price: gig?.price,
           buyer: { connect: { id: req?.userId } },
           gig: { connect: { id: gig?.id } },

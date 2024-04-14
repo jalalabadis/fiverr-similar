@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { ORDER_SOLANA_SUCCESS_ROUTE, PUBKEY } from '../utils/constants';
 import axios  from 'axios';
+import bs58 from 'bs58'
 import { useRouter } from 'next/router';
 
 const Checkoutsolana = ({gigPrice}) => {
@@ -69,15 +70,13 @@ const Checkoutsolana = ({gigPrice}) => {
 
       const transaction = new Transaction().add(instruction);
       transaction.feePayer = wallet.publicKey;
-
       const hash = await connection.getRecentBlockhash();
       transaction.recentBlockhash = hash.blockhash;
 
-      const signature = await window.solana.signAndSendTransaction(transaction);
+      const {signature} = await window.solana.signAndSendTransaction(transaction);
       await connection.confirmTransaction(signature, "singleGossip");
-       // Send signed transaction to server
-    await sendTransactionToServer(signature);
-      console.log("Money sent:", signature);
+       //Send signed transaction to server
+      await sendTransactionToServer(signature);
       setError(null);
     } catch (error) {
       setIsLoading(false);
@@ -93,7 +92,7 @@ const Checkoutsolana = ({gigPrice}) => {
 
   const sendTransactionToServer = async (signedTransaction) => {
     try {
-      console.log(ORDER_SOLANA_SUCCESS_ROUTE);
+      console.log(signedTransaction);
       const response = await axios.post(ORDER_SOLANA_SUCCESS_ROUTE, {gigId, signedTransaction }, { withCredentials: true });
   
       if (response.status >= 200 && response.status < 300) {
